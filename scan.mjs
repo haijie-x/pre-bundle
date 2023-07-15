@@ -15,14 +15,18 @@ const isInNodeModules = (id) => {
 
 const resolveId = (id, importer) => {
   if (bareImportReg.test(id)) {
-    const require = module.createRequire(importer);
-    let depId = require.resolve(id);
-    return depId;
+    try {
+      const require = module.createRequire(importer);
+      let depId = require.resolve(id);
+      return depId;
+    } catch (e) {
+      return;
+    }
   }
   return path.isAbsolute(id) ? id : path.resolve(path.dirname(importer), id);
 };
 
-const esbuildScanPlugin = ({ dep, missing }) => {
+const esbuildScanPlugin = ({ deps, miss }) => {
   return {
     name: "esbuild:scan",
     setup(build) {
@@ -60,12 +64,12 @@ const esbuildScanPlugin = ({ dep, missing }) => {
           const resolved = resolveId(id, importer);
           if (resolved) {
             if (isInNodeModules(resolved)) {
-              dep[id] = resolved;
+              deps[id] = resolved;
               return { path: id, path: resolved };
             }
           } else {
-            missing[id] = importer;
-            return;
+            miss[id] = importer;
+            return { path: id, external: true };
           }
         }
       );
@@ -101,8 +105,8 @@ const esbuildScanPlugin = ({ dep, missing }) => {
 export const createScanner = async (config) => {
   const { base } = config ?? {};
   const scanResult = {
-    dep: {},
-    missing: {},
+    deps: {},
+    miss: {},
   };
   const entries = [path.resolve(base, "index.html")];
   const context = await esbuild.context({
@@ -119,12 +123,22 @@ export const createScanner = async (config) => {
   });
   try {
     await context.rebuild();
-    console.log(scanResult);
-    return scanResult;
+    const missIds = Object.keys(scanResult.miss);
+    if (missIds.length) {
+      throw new Error(
+        `The following dependencies are imported but could not be resolved:\n${missIds
+          .map((id) => `\t${id} imported by ${scanResult.miss[id]}`)
+          .join(`\n`)}\nAre they installed?`
+      );
+    }
   } catch (e) {
     console.log(e);
-    context.context?.dispose().catch((e) => {
+    context.dispose().catch((e) => {
       console.error("Failed to dispose esbuild context\n" + e);
     });
   }
+  return {
+    scanResult,
+    scanDispose: context.dispose,
+  };
 };
