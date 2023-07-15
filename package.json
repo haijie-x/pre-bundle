@@ -1,0 +1,24 @@
+{
+  "name": "pre-bundle",
+  "version": "1.0.0",
+  "description": "Pre-bundle by esbuild",
+  "type": "module",
+  "module": "index.mjs",
+  "scripts": {
+    "dev": "node index.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haijie-x/pre-bundle.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/haijie-x/pre-bundle/issues"
+  },
+  "homepage": "https://github.com/haijie-x/pre-bundle#readme",
+  "dependencies": {
+    "esbuild": "^0.18.13",
+    "react": "^18.2.0"
+  }
+}

@@ -1,0 +1,36 @@
+# dependencies
+node_modules
+
+# build output
+/build
+dist
+
+# logs and databases
+/logs
+/db
+
+# dotenv environment variables file
+.env
+
+# IDE-specific files
+.idea
+.vscode
+
+# macOS files
+.DS_Store
+
+# Compiled binary addons
+/*.node
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Testing files
+/coverage
+/.nyc_output
+/.jest
+
+# OS-generated files
+Thumbs.db
+ehthumbs.db
+.DS_Store
