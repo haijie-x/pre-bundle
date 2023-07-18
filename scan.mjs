@@ -1,29 +1,11 @@
-import {
-  htmlTypesReg,
-  scriptReg,
-  JsTypeReg,
-  bareImportReg,
-} from "./constants.mjs";
+import { htmlTypesReg, scriptReg, JsTypeReg } from "./constants.mjs";
 import path from "node:path";
 import esbuild from "esbuild";
 import fsp from "node:fs/promises";
-import module from "node:module";
+import { resolveId } from "./resolver.mjs";
 
 const isInNodeModules = (id) => {
   return id.includes("node_modules");
-};
-
-const resolveId = (id, importer) => {
-  if (bareImportReg.test(id)) {
-    try {
-      const require = module.createRequire(importer);
-      let depId = require.resolve(id);
-      return depId;
-    } catch (e) {
-      return;
-    }
-  }
-  return path.isAbsolute(id) ? id : path.resolve(path.dirname(importer), id);
 };
 
 const esbuildScanPlugin = ({ deps, miss }) => {
@@ -31,7 +13,7 @@ const esbuildScanPlugin = ({ deps, miss }) => {
     name: "esbuild:scan",
     setup(build) {
       build.onResolve({ filter: htmlTypesReg }, async ({ path: id }) => {
-        const resolved = resolveId(id);
+        const resolved = await resolveId(id);
         if (resolved)
           return {
             path: id,
@@ -61,12 +43,10 @@ const esbuildScanPlugin = ({ deps, miss }) => {
           filter: /^[\w@][^:]/,
         },
         async ({ path: id, importer }) => {
-          const resolved = resolveId(id, importer);
-          if (resolved) {
-            if (isInNodeModules(resolved)) {
-              deps[id] = resolved;
-              return { path: id, path: resolved };
-            }
+          const resolved = await resolveId(id, importer);
+          if (resolved && isInNodeModules(resolved)) {
+            deps[id] = resolved;
+            return { path: id, path: resolved };
           } else {
             miss[id] = importer;
             return { path: id, external: true };
@@ -78,7 +58,7 @@ const esbuildScanPlugin = ({ deps, miss }) => {
           filter: /.*/,
         },
         async ({ path: id, importer, pluginData }) => {
-          const resolved = resolveId(id, importer);
+          const resolved = await resolveId(id, importer);
           if (resolved) {
             const namespace = htmlTypesReg.test(resolved) ? "html" : undefined;
             return {
@@ -86,7 +66,7 @@ const esbuildScanPlugin = ({ deps, miss }) => {
               namespace,
             };
           } else {
-            return { path: id, external: true };
+            return { path: id, namespace: "empty" };
           }
         }
       );
@@ -132,7 +112,6 @@ export const createScanner = async (config) => {
       );
     }
   } catch (e) {
-    console.log(e);
     context.dispose().catch((e) => {
       console.error("Failed to dispose esbuild context\n" + e);
     });

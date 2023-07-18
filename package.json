@@ -20,5 +20,11 @@
   "dependencies": {
     "esbuild": "^0.18.13",
     "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "enhanced-resolve": "4.3.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.14.1",
+    "zustand": "^4.3.9"
   }
 }
